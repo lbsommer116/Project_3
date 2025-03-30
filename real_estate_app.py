@@ -1,5 +1,3 @@
-# app.py
-
 from flask import Flask
 from dash import Dash, dcc, html, Input, Output
 import pandas as pd
@@ -35,6 +33,7 @@ dataframes = {name: load_dataset(path) for name, path in dataset_paths.items()}
 # ---------------------------
 app.layout = html.Div([
     html.H1("US Real Estate Dashboard"),
+    
     html.Div([
          html.Label("Select Dataset:"),
          dcc.Dropdown(
@@ -44,8 +43,9 @@ app.layout = html.Div([
              placeholder="Select Dataset"
          )
     ], style={'width': '30%', 'display': 'inline-block'}),
+    
     html.Br(),
-    # Year selection for map and bar chart
+
     html.Div([
          html.Label("Select Year:"),
          dcc.RadioItems(
@@ -53,15 +53,40 @@ app.layout = html.Div([
              labelStyle={'display': 'inline-block', 'margin-right': '15px'}
          )
     ], style={'width': '80%', 'padding': '20px'}),
+    
     html.Br(),
+
     html.Div([
          dcc.Graph(id="map-graph")
     ]),
+
+    # New controls for sorting and number of cities
+    html.Div([
+        html.Label("Sort Order:"),
+        dcc.RadioItems(
+            id="sort-order",
+            options=[
+                {"label": "Cities with Highest Average", "value": "desc"},
+                {"label": "Cities with Lowest Average", "value": "asc"},
+            ],
+            value="desc",
+            labelStyle={'display': 'inline-block', 'margin-right': '15px'}
+        ),
+        html.Label("Number of Cities:"),
+        dcc.Dropdown(
+            id="city-count",
+            options=[{"label": str(i), "value": i} for i in [10, 20, 50, 100]],
+            value=10,
+            style={"width": "150px", "display": "inline-block", "margin-left": "10px"}
+        )
+    ], style={'padding': '20px'}),
+
     html.Div([
          dcc.Graph(id="bar-graph")
     ]),
+
     html.Br(),
-    # City selection for line graph
+
     html.Div([
          html.Label("Select City for Trend:"),
          dcc.Dropdown(
@@ -69,14 +94,16 @@ app.layout = html.Div([
              placeholder="Select City"
          )
     ], style={'width': '30%', 'display': 'inline-block'}),
+    
     html.Br(),
+    
     html.Div([
          dcc.Graph(id="line-graph")
     ])
 ])
 
 # ---------------------------
-# Callback: Update Year Radio Options based on Dataset
+# Callback: Update Year Radio Options
 # ---------------------------
 @app.callback(
     [Output('year-radio', 'options'),
@@ -86,7 +113,6 @@ app.layout = html.Div([
 def update_year_radio(dataset_name):
     df = dataframes[dataset_name]
     years = []
-    # Look for columns with the pattern "DatasetName <year>"
     for col in df.columns:
         if col.startswith(f"{dataset_name} "):
             year_part = col.split(f"{dataset_name} ")[1]
@@ -95,18 +121,17 @@ def update_year_radio(dataset_name):
                 years.append(y)
             except:
                 pass
-    # If not found, try columns that are just digits
     if not years:
         years = [int(col) for col in df.columns if col.isdigit()]
     years = sorted(list(set(years)))
     if not years:
-        years = [2000]  # fallback if no year columns are found
+        years = [2000]
     options = [{"label": str(year), "value": year} for year in years]
-    default = max(years)  # default to the latest year available
+    default = max(years)
     return options, default
 
 # ---------------------------
-# Callback: Update City Dropdown based on Dataset
+# Callback: Update City Dropdown
 # ---------------------------
 @app.callback(
     [Output('city-dropdown', 'options'),
@@ -115,21 +140,14 @@ def update_year_radio(dataset_name):
 )
 def update_city_dropdown(dataset_name):
     df = dataframes[dataset_name]
-    # Use "RegionName" if available, which includes both city and state;
-    # otherwise fallback to "City"
-    if "RegionName" in df.columns:
-        city_col = "RegionName"
-    elif "City" in df.columns:
-        city_col = "City"
-    else:
-        return [], None
+    city_col = "RegionName" if "RegionName" in df.columns else "City"
     cities = sorted(df[city_col].dropna().unique())
     options = [{"label": city, "value": city} for city in cities]
     default = "New York City" if "New York City" in cities else (cities[0] if cities else None)
     return options, default
 
 # ---------------------------
-# Callback: Update Map Graph (using selected year)
+# Callback: Map Graph
 # ---------------------------
 @app.callback(
     Output("map-graph", "figure"),
@@ -141,32 +159,10 @@ def update_map(selected_dataset, selected_year):
     df.columns = df.columns.str.strip()
     
     preferred_col = f"{selected_dataset} {selected_year_str}"
-    if preferred_col in df.columns:
-        col_name = preferred_col
-    elif selected_year_str in df.columns:
-        col_name = selected_year_str
-    else:
-        print("Error: Neither", preferred_col, "nor", selected_year_str, "found in columns:")
-        print(df.columns.tolist())
-        return {}
+    col_name = preferred_col if preferred_col in df.columns else selected_year_str
     
-    if "latitude" in df.columns:
-        lat_col = "latitude"
-    elif "Latitude" in df.columns:
-        lat_col = "Latitude"
-    else:
-        print("Error: Latitude column not found. Available columns:")
-        print(df.columns.tolist())
-        return {}
-    
-    if "longitude" in df.columns:
-        lon_col = "longitude"
-    elif "Longitude" in df.columns:
-        lon_col = "Longitude"
-    else:
-        print("Error: Longitude column not found. Available columns:")
-        print(df.columns.tolist())
-        return {}
+    lat_col = "latitude" if "latitude" in df.columns else "Latitude"
+    lon_col = "longitude" if "longitude" in df.columns else "Longitude"
     
     df_map = df.dropna(subset=[col_name, lat_col, lon_col])
     
@@ -176,12 +172,12 @@ def update_map(selected_dataset, selected_year):
         lon=lon_col,
         size=col_name,
         color=col_name,
-        hover_name="RegionName",  # using RegionName as primary hover label
+        hover_name="RegionName",
         hover_data={
-            "StateName": False, 
+            "StateName": False,
             col_name: True,
-            lat_col: False,       # <-- remove latitude from hover
-            lon_col: False        # <-- remove longitude from hover
+            lat_col: False,
+            lon_col: False
         },
         labels = {col_name: f"{col_name} Average {selected_dataset}"},
         zoom=3,
@@ -199,31 +195,42 @@ def update_map(selected_dataset, selected_year):
     return fig
 
 # ---------------------------
-# Callback: Update Bar Chart (using selected year)
+# Callback: Bar Graph
 # ---------------------------
 @app.callback(
     Output("bar-graph", "figure"),
-    [Input("dataset-dropdown", "value"), Input("year-radio", "value")]
+    [
+        Input("dataset-dropdown", "value"),
+        Input("year-radio", "value"),
+        Input("sort-order", "value"),
+        Input("city-count", "value")
+    ]
 )
-def update_bar_chart(selected_dataset, year):
+def update_bar_chart(selected_dataset, year, sort_order, city_count):
     selected_year = str(year)
     df = dataframes[selected_dataset]
     col = selected_year if selected_year in df.columns else f"{selected_dataset} {selected_year}"
     region_col = "RegionName" if "RegionName" in df.columns else "City"
+
     df_filtered = df[df[region_col] != 'United States'][[region_col, col]].dropna()
-    df_filtered = df_filtered.sort_values(by=col, ascending=False).head(10)
+    ascending = True if sort_order == "asc" else False
+    df_filtered = df_filtered.sort_values(by=col, ascending=ascending).head(city_count)
+
     us_row = df[df[region_col] == 'United States']
     us_val = us_row[col].values[0] if not us_row.empty else None
+
     fig = px.bar(df_filtered, x=region_col, y=col,
-                 title=f"Top 10 Cities vs US Average ({selected_year})",
+                 title=f"Top {city_count} Cities ({'Ascending' if ascending else 'Descending'}) - {selected_year}",
                  color_discrete_sequence=['#5DADE2'])
+
     if us_val is not None:
         fig.add_hline(y=us_val, line_dash="dot", line_color="red", annotation_text="US Average")
+
     fig.update_layout(xaxis_tickangle=45, height=600)
     return fig
 
 # ---------------------------
-# Callback: Update Line Graph (trend for selected city across all available years, including state)
+# Callback: Line Graph
 # ---------------------------
 @app.callback(
     Output("line-graph", "figure"),
@@ -231,18 +238,13 @@ def update_bar_chart(selected_dataset, year):
 )
 def update_line_graph(selected_dataset, selected_city):
     df = dataframes[selected_dataset]
-    if "RegionName" in df.columns:
-        city_col = "RegionName"
-    elif "City" in df.columns:
-        city_col = "City"
-    else:
-        return {}
+    city_col = "RegionName" if "RegionName" in df.columns else "City"
     if selected_city is None or selected_city not in df[city_col].unique():
         return {}
     city_df = df[df[city_col] == selected_city]
     if city_df.empty:
         return {}
-    
+
     exclude = {city_col, "Latitude", "Longitude", "State", "StateName", "RegionName"}
     trend_data = {}
     for col in city_df.columns:
@@ -266,5 +268,8 @@ def update_line_graph(selected_dataset, selected_city):
     fig.update_layout(xaxis_title="Year", yaxis_title=selected_dataset)
     return fig
 
+# ---------------------------
+# Run the App
+# ---------------------------
 if __name__ == '__main__':
-    app.run(debug=True, port=8052)
+    app.run(debug=True, port=8058)
