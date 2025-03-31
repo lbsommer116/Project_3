@@ -4,8 +4,14 @@
 
 In our analysis, we used Zillow data to create a dynamic dashboard that visualizes housing market trends in major metropolitan cities across the United States. The dashboard features a plethora of interactive visuals—including maps, bar charts, and a line graph—that enable users to explore various aspects of the housing market. This interactivity provides a comprehensive and user-friendly way to analyze how market conditions have evolved over time nationwide.
 
+## Instructions for Repository
 ---
-
+- **Data Folder**: Raw csv files (from database)
+- **data_pipeline**: Jupyter notebook showing data transformations
+- **final_csv_clean**: Jupyter notebook used to create final avg CSVs to use for our visualizations
+- **avg CSVs**: Final CSVs used for visualizations (output from final_csv_clean)
+- **real_estate_app.py**: This is where our Dash visualization code lives and where the our app can be run to generate our live dashboard.
+  
 ## Instructions for Using the Dashboard Visuals
 
 ### Map Visualization (Neighborhood Price Heatmap)
