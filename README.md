@@ -20,7 +20,7 @@ In our analysis, we used Zillow data to create a dynamic dashboard that visualiz
 - **Year Toggle**: Adjust the year toggle to explore how the data has changed over time.
 - **Interpretation**: The map will update to show color-coded neighborhoods based on their selected metric, allowing you to quickly compare prices across different areas. Darker or lighter shades represent higher or lower values, depending on the dataset.
 
-### Bar Chart (Top 10 Cities vs. U.S. Average)
+### Bar Chart (Cities vs. U.S. Average)
 
 - **Dropdown Menu**: Choose your dataset (e.g., Median Home Value, Rent Price, etc.) from the dropdown to change the metric being displayed.
 - **Year Toggle**: Use the toggle to switch between years and see how city rankings and values have changed over time.
